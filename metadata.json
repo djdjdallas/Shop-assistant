@@ -1,0 +1,5 @@
+{
+  "name": "Product Admin Sidekick",
+  "description": "A Shopify Admin Extension that brings internal notes and 30/90 day sales statistics directly to the product management page.",
+  "requestFramePermissions": []
+}
