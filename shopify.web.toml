@@ -1,0 +1,9 @@
+# Shopify Web Configuration
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration
+
+name = "Product Admin Sidekick"
+type = "frontend"
+
+[commands]
+dev = "npm run dev"
+build = "npm run build"

@@ -1,0 +1,44 @@
+# Shopify App Configuration
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "" # Set via SHOPIFY_API_KEY env var or update here after app creation
+name = "Product Admin Sidekick"
+handle = "product-admin-sidekick"
+application_url = "https://your-app.vercel.app"
+
+[access_scopes]
+scopes = "read_products,write_products,read_orders,read_inventory"
+
+[auth]
+redirect_urls = [
+  "https://your-app.vercel.app/api/auth/callback",
+  "https://localhost:3000/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2024-01"
+
+  [[webhooks.subscriptions]]
+  topics = ["customers/data_request"]
+  uri = "/api/webhooks/customers/data-request"
+
+  [[webhooks.subscriptions]]
+  topics = ["customers/redact"]
+  uri = "/api/webhooks/customers/redact"
+
+  [[webhooks.subscriptions]]
+  topics = ["shop/redact"]
+  uri = "/api/webhooks/shop/redact"
+
+[pos]
+embedded = false
+
+[app_proxy]
+# Uncomment if using app proxy
+# url = "https://your-app.vercel.app"
+# prefix = "/apps"
+# subpath = "sidekick"
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true

@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient, resolveShopId } from '../../../lib/supabase-server';
+import { getAuthenticatedShop } from '../../../lib/session';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const productId = url.searchParams.get('productId');
-  const shopId = resolveShopId(request);
+
+  // Try authenticated shop first, fall back to legacy method in dev
+  const authenticatedShop = await getAuthenticatedShop(request);
+  const shopId = authenticatedShop?.id || resolveShopId(request);
 
   if (!productId) {
     return NextResponse.json({ error: 'productId is required' }, { status: 400 });
   }
 
   if (!shopId) {
-    return NextResponse.json({ error: 'shopId is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = getSupabaseServerClient();
@@ -31,10 +35,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const shopId = resolveShopId(request, body);
+
+  // Try authenticated shop first, fall back to legacy method in dev
+  const authenticatedShop = await getAuthenticatedShop(request);
+  const shopId = authenticatedShop?.id || resolveShopId(request, body);
 
   if (!shopId) {
-    return NextResponse.json({ error: 'shopId is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (!body?.productId || !body?.name || !body?.url || !body?.price) {

@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient, resolveShopId } from '../../../lib/supabase-server';
+import { getAuthenticatedShop } from '../../../lib/session';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const productId = url.searchParams.get('productId');
   const period = url.searchParams.get('period');
-  const shopId = resolveShopId(request);
+
+  // Try authenticated shop first, fall back to legacy method in dev
+  const authenticatedShop = await getAuthenticatedShop(request);
+  const shopId = authenticatedShop?.id || resolveShopId(request);
 
   if (!productId || !period) {
     return NextResponse.json({ error: 'productId and period are required' }, { status: 400 });
@@ -16,7 +20,7 @@ export async function GET(request: Request) {
   }
 
   if (!shopId) {
-    return NextResponse.json({ error: 'shopId is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = getSupabaseServerClient();
