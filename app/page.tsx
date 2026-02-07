@@ -42,16 +42,37 @@ export default function Page() {
       const productId = searchParams.get('id') || searchParams.get('productId');
 
       if (productId) {
-        // In a real implementation, you would fetch product details from Shopify API
-        // For now, set a basic product context with the ID
-        setProduct({
-          id: productId,
-          title: 'Loading...',
-          image: '',
-          status: 'Active',
-          inventory: 0,
-          price: '0.00',
-        });
+        try {
+          const headers: HeadersInit = { 'Content-Type': 'application/json' };
+          const token = await getToken();
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, { headers });
+          if (response.ok) {
+            const data = await response.json();
+            setProduct(data);
+          } else {
+            // Fallback: set basic context so the UI isn't completely broken
+            setProduct({
+              id: productId,
+              title: 'Unknown Product',
+              image: '',
+              status: 'Active',
+              inventory: 0,
+              price: '0.00',
+            });
+          }
+        } catch {
+          setProduct({
+            id: productId,
+            title: 'Unknown Product',
+            image: '',
+            status: 'Active',
+            inventory: 0,
+            price: '0.00',
+          });
+        }
         setIsLoading(false);
         return;
       }
@@ -67,7 +88,7 @@ export default function Page() {
     if (!authLoading) {
       initProduct();
     }
-  }, [authLoading]);
+  }, [authLoading, getToken]);
 
   if (isLoading || authLoading) {
     return (

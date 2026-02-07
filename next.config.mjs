@@ -38,7 +38,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://*.myshopify.com https://*.shopify.com wss://*.shopify.com",
+              "connect-src 'self' https://*.myshopify.com https://*.shopify.com wss://*.shopify.com https://*.supabase.co",
               "frame-ancestors 'self' https://*.myshopify.com https://admin.shopify.com",
             ].join('; '),
           },
