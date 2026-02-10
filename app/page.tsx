@@ -19,7 +19,59 @@ const DEMO_PRODUCT: ProductContext = {
 export default function Page() {
   const [product, setProduct] = useState<ProductContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPickerLoading, setIsPickerLoading] = useState(false);
   const { getToken, isLoading: authLoading } = useShopifyAuth();
+
+  const fetchProduct = async (productId: string) => {
+    try {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      const token = await getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setProduct(data);
+      } else {
+        setProduct({
+          id: productId,
+          title: 'Unknown Product',
+          image: '',
+          status: 'Active',
+          inventory: 0,
+          price: '0.00',
+        });
+      }
+    } catch {
+      setProduct({
+        id: productId,
+        title: 'Unknown Product',
+        image: '',
+        status: 'Active',
+        inventory: 0,
+        price: '0.00',
+      });
+    }
+  };
+
+  const openProductPicker = async () => {
+    const appBridge = (window as unknown as { shopify?: { resourcePicker?: (options: { type: string; multiple?: boolean }) => Promise<{ id: string }[] | undefined> } }).shopify;
+    if (appBridge?.resourcePicker) {
+      setIsPickerLoading(true);
+      try {
+        const selected = await appBridge.resourcePicker({ type: 'product', multiple: false });
+        if (selected && selected.length > 0) {
+          const selectedId = selected[0].id;
+          await fetchProduct(selectedId);
+        }
+      } catch (err) {
+        console.error('Resource picker error:', err);
+      } finally {
+        setIsPickerLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     // Set up the session token getter for API calls
@@ -42,37 +94,7 @@ export default function Page() {
       const productId = searchParams.get('id') || searchParams.get('productId');
 
       if (productId) {
-        try {
-          const headers: HeadersInit = { 'Content-Type': 'application/json' };
-          const token = await getToken();
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-          const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, { headers });
-          if (response.ok) {
-            const data = await response.json();
-            setProduct(data);
-          } else {
-            // Fallback: set basic context so the UI isn't completely broken
-            setProduct({
-              id: productId,
-              title: 'Unknown Product',
-              image: '',
-              status: 'Active',
-              inventory: 0,
-              price: '0.00',
-            });
-          }
-        } catch {
-          setProduct({
-            id: productId,
-            title: 'Unknown Product',
-            image: '',
-            status: 'Active',
-            inventory: 0,
-            price: '0.00',
-          });
-        }
+        await fetchProduct(productId);
         setIsLoading(false);
         return;
       }
@@ -112,8 +134,15 @@ export default function Page() {
           </div>
           <h1 className="text-lg font-semibold text-gray-900">No Product Selected</h1>
           <p className="text-sm text-gray-600">
-            Open this app from a product page in your Shopify admin to view product details and manage notes.
+            Select a product to view details, manage notes, track competitors, and forecast sales.
           </p>
+          <button
+            onClick={openProductPicker}
+            disabled={isPickerLoading}
+            className="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
+          >
+            {isPickerLoading ? 'Loading...' : 'Select a Product'}
+          </button>
         </div>
       </div>
     );
