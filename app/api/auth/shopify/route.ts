@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Begin OAuth flow - with web-api adapter this returns a Response directly
+    // Begin OAuth flow - web-api adapter returns a Response object
     const response = await shopify.auth.begin({
       shop,
       callbackPath: '/api/auth/callback',
@@ -29,7 +29,25 @@ export async function GET(request: Request) {
       rawRequest: request,
     });
 
-    return response;
+    // Extract redirect URL and cookies from Shopify's response,
+    // then construct a NextResponse so cookies are properly forwarded
+    const location = response.headers.get('location');
+    if (!location) {
+      return NextResponse.json(
+        { error: 'No redirect URL returned from OAuth begin' },
+        { status: 500 }
+      );
+    }
+
+    const nextResponse = NextResponse.redirect(location);
+
+    // Forward all Set-Cookie headers so the OAuth state cookie persists
+    const setCookieHeaders = response.headers.getSetCookie();
+    for (const cookie of setCookieHeaders) {
+      nextResponse.headers.append('set-cookie', cookie);
+    }
+
+    return nextResponse;
   } catch (error) {
     console.error('OAuth initiation error:', error);
     return NextResponse.json(
