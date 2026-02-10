@@ -21,15 +21,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Generate OAuth authorization URL
-    const authUrl = await shopify.auth.begin({
+    // Begin OAuth flow - with web-api adapter this returns a Response directly
+    const response = await shopify.auth.begin({
       shop,
       callbackPath: '/api/auth/callback',
       isOnline: false, // Use offline tokens for background access
       rawRequest: request,
     });
 
-    return NextResponse.redirect(authUrl);
+    return response;
   } catch (error) {
     console.error('OAuth initiation error:', error);
     return NextResponse.json(
