@@ -16,7 +16,6 @@ class SupabaseSessionStorage {
     const { error } = await supabase
       .from('shops')
       .upsert({
-        id: session.shop.replace('.myshopify.com', ''),
         shop_domain: session.shop,
         access_token: session.accessToken,
         scope: session.scope,
