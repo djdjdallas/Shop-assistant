@@ -56,20 +56,33 @@ export default function Page() {
   };
 
   const openProductPicker = async () => {
-    const appBridge = (window as unknown as { shopify?: { resourcePicker?: (options: { type: string; multiple?: boolean }) => Promise<{ id: string }[] | undefined> } }).shopify;
-    if (appBridge?.resourcePicker) {
-      setIsPickerLoading(true);
-      try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appBridge = (window as unknown as { shopify?: any }).shopify;
+    console.log('App Bridge available:', !!appBridge);
+    console.log('App Bridge keys:', appBridge ? Object.keys(appBridge) : 'none');
+
+    if (!appBridge) {
+      alert('Shopify App Bridge is not available. Make sure you are viewing this app inside the Shopify admin.');
+      return;
+    }
+
+    setIsPickerLoading(true);
+    try {
+      if (appBridge.resourcePicker) {
         const selected = await appBridge.resourcePicker({ type: 'product', multiple: false });
         if (selected && selected.length > 0) {
           const selectedId = selected[0].id;
           await fetchProduct(selectedId);
         }
-      } catch (err) {
-        console.error('Resource picker error:', err);
-      } finally {
-        setIsPickerLoading(false);
+      } else {
+        console.log('resourcePicker not available, available methods:', Object.keys(appBridge));
+        alert('Resource picker not available. App Bridge methods: ' + Object.keys(appBridge).join(', '));
       }
+    } catch (err) {
+      console.error('Resource picker error:', err);
+      alert('Error opening product picker: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsPickerLoading(false);
     }
   };
 
