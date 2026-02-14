@@ -31,6 +31,11 @@ const ProductAdminBlock: React.FC<ProductAdminBlockProps> = ({ product }) => {
         setStats(data);
         setLoadingStats(false);
       }
+    }).catch(() => {
+      if (isMounted) {
+        setStats(null);
+        setLoadingStats(false);
+      }
     });
     return () => { isMounted = false; };
   }, [product.id, period]);

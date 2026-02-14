@@ -121,7 +121,33 @@ const StatsCard: React.FC<StatsCardProps> = ({ stats, loading, period, inventory
     );
   }
 
-  if (!stats) return null;
+  if (!stats) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+        {/* --- Header (same as populated state) --- */}
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-gray-500" />
+            Performance & Forecast
+          </h3>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-gray-100 rounded-md p-0.5">
+              <button onClick={() => onPeriodChange('30d')} className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${period === '30d' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>30 Days</button>
+              <button onClick={() => onPeriodChange('90d')} className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${period === '90d' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>90 Days</button>
+            </div>
+          </div>
+        </div>
+        {/* --- Empty State --- */}
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <Package className="w-10 h-10 text-gray-300 mb-3" />
+          <p className="text-sm font-medium text-gray-600">No analytics data yet</p>
+          <p className="text-xs text-gray-400 mt-1 max-w-xs">
+            Sales data will appear here once orders come in. You can also seed demo data via the <code className="bg-gray-100 px-1 rounded text-[11px]">POST /api/seed</code> endpoint.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 relative overflow-hidden">
