@@ -82,7 +82,16 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fetch trends data from Google
+    // Check for cached data first
+    const { data: cachedData } = await supabase
+      .from('trends_timeseries')
+      .select('date, index_value')
+      .eq('trends_query_id', trendsQueryId)
+      .order('date', { ascending: true });
+
+    const hasCachedData = cachedData && cachedData.length > 0;
+
+    // Try fetching fresh data from Google Trends
     const endDate = new Date();
     const startDate = subDays(endDate, daysBack);
 
@@ -93,49 +102,55 @@ export async function POST(request: Request) {
       endDate
     );
 
-    if (trendsData.length === 0) {
+    if (trendsData.length > 0) {
+      // Store fresh data in database
+      const upsertData = trendsData.map((point: TrendsPoint) => ({
+        trends_query_id: trendsQueryId,
+        date: point.date,
+        index_value: point.index_value,
+      }));
+
+      const { error: upsertError } = await supabase
+        .from('trends_timeseries')
+        .upsert(upsertData, {
+          onConflict: 'trends_query_id,date',
+        });
+
+      if (upsertError) {
+        console.error('Failed to store trends data:', upsertError);
+      }
+
       return NextResponse.json({
         success: true,
         queryId: trendsQueryId,
-        dataPoints: 0,
-        timeseries: [],
-        message: 'No data returned from Google Trends. The query may have no search volume or the API may be rate limited.',
+        dataPoints: trendsData.length,
+        timeseries: trendsData.map((p: TrendsPoint) => ({
+          date: p.date,
+          interest: p.index_value,
+        })),
       });
     }
 
-    // Store trends data in database
-    const upsertData = trendsData.map((point: TrendsPoint) => ({
-      trends_query_id: trendsQueryId,
-      date: point.date,
-      interest_value: point.index_value,
-    }));
-
-    const { error: upsertError } = await supabase
-      .from('trends_timeseries')
-      .upsert(upsertData, {
-        onConflict: 'trends_query_id,date',
+    // Live API returned nothing — fall back to cached data
+    if (hasCachedData) {
+      return NextResponse.json({
+        success: true,
+        queryId: trendsQueryId,
+        dataPoints: cachedData.length,
+        timeseries: cachedData.map((row: { date: string; index_value: number }) => ({
+          date: row.date,
+          interest: row.index_value,
+        })),
+        cached: true,
       });
-
-    if (upsertError) {
-      console.error('Failed to store trends data:', upsertError);
-      return NextResponse.json(
-        { error: 'Failed to store trends data' },
-        { status: 500 }
-      );
     }
 
     return NextResponse.json({
       success: true,
       queryId: trendsQueryId,
-      dataPoints: trendsData.length,
-      timeseries: trendsData.map((p: TrendsPoint) => ({
-        date: p.date,
-        interest: p.index_value,
-      })),
-      dateRange: {
-        start: trendsData[0].date,
-        end: trendsData[trendsData.length - 1].date,
-      },
+      dataPoints: 0,
+      timeseries: [],
+      message: 'No data returned from Google Trends. The API may be rate-limited from this server. Try seeding data locally.',
     });
   } catch (error) {
     console.error('Error fetching trends:', error);
