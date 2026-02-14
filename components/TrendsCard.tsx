@@ -51,22 +51,30 @@ const TrendsCard: React.FC<TrendsCardProps> = ({ productId, productTitle }) => {
 
     let isMounted = true;
     setFetchingData(true);
+    setError(null);
 
-    // Fetch data for the first mapping's query
-    const firstMapping = mappings[0];
-    if (!firstMapping.google_trends_queries) {
-      setFetchingData(false);
-      return;
-    }
+    // Fetch data for all mapped queries in parallel
+    const fetchPromises = mappings
+      .filter(m => m.google_trends_queries)
+      .map(m => fetchTrendsData(m.trends_query_id, m.google_trends_queries!.query));
 
-    fetchTrendsData(firstMapping.trends_query_id, firstMapping.google_trends_queries.query)
-      .then((result) => {
-        if (isMounted && result.success) {
-          // If we got dataPoints, fetch the timeseries data
-          // For now, use the result metadata to show something
+    Promise.all(fetchPromises)
+      .then((results) => {
+        if (!isMounted) return;
+
+        // Merge timeseries from all results (use the first one with data for now)
+        const withData = results.find(r => r.success && r.timeseries && r.timeseries.length > 0);
+        if (withData) {
+          setTrendsData(withData.timeseries);
+        } else {
           setTrendsData([]);
-          setFetchingData(false);
+          // Show message if API returned but with no data
+          const msg = results.find(r => r.message);
+          if (msg?.message) {
+            setError(msg.message);
+          }
         }
+        setFetchingData(false);
       })
       .catch(() => {
         if (isMounted) {
@@ -238,8 +246,8 @@ const TrendsCard: React.FC<TrendsCardProps> = ({ productId, productTitle }) => {
             ) : (
               <div className="h-40 flex items-center justify-center text-center">
                 <div>
-                  <p className="text-xs text-gray-500">Trends data is being fetched.</p>
-                  <p className="text-[10px] text-gray-400 mt-1">Data may take a moment to populate from Google Trends.</p>
+                  <p className="text-xs text-gray-500">No trend data available yet.</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Google Trends may not have data for this query, or the API may be rate-limited. Try a broader search term.</p>
                 </div>
               </div>
             )}

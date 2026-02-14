@@ -239,11 +239,19 @@ export const removeTrendMapping = async (mappingId: string): Promise<void> => {
   });
 };
 
+export interface TrendsResponse {
+  success: boolean;
+  queryId: string;
+  dataPoints: number;
+  timeseries: { date: string; interest: number }[];
+  message?: string;
+}
+
 export const fetchTrendsData = async (
   queryId: string,
   queryText?: string
-): Promise<{ success: boolean; queryId: string; dataPoints: number }> => {
-  return requestJson<{ success: boolean; queryId: string; dataPoints: number }>('/api/trends/fetch', {
+): Promise<TrendsResponse> => {
+  return requestJson<TrendsResponse>('/api/trends/fetch', {
     method: 'POST',
     body: JSON.stringify({ queryId, queryText }),
   });

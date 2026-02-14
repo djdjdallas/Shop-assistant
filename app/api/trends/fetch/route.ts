@@ -98,6 +98,7 @@ export async function POST(request: Request) {
         success: true,
         queryId: trendsQueryId,
         dataPoints: 0,
+        timeseries: [],
         message: 'No data returned from Google Trends. The query may have no search volume or the API may be rate limited.',
       });
     }
@@ -127,6 +128,10 @@ export async function POST(request: Request) {
       success: true,
       queryId: trendsQueryId,
       dataPoints: trendsData.length,
+      timeseries: trendsData.map((p: TrendsPoint) => ({
+        date: p.date,
+        interest: p.index_value,
+      })),
       dateRange: {
         start: trendsData[0].date,
         end: trendsData[trendsData.length - 1].date,
