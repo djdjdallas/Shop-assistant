@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (queryId) {
       const { data: existingQuery, error } = await supabase
         .from('google_trends_queries')
-        .select('id, query_text')
+        .select('id, query')
         .eq('id', queryId)
         .eq('shop_id', authenticatedShop.id)
         .single();
@@ -49,14 +49,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Query not found' }, { status: 404 });
       }
 
-      searchQuery = existingQuery.query_text;
+      searchQuery = existingQuery.query;
     } else if (queryText) {
       // Create new query record if it doesn't exist
       const { data: existingQuery } = await supabase
         .from('google_trends_queries')
         .select('id')
         .eq('shop_id', authenticatedShop.id)
-        .eq('query_text', queryText)
+        .eq('query', queryText)
         .single();
 
       if (existingQuery) {
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
           .from('google_trends_queries')
           .insert({
             shop_id: authenticatedShop.id,
-            query_text: queryText,
+            query: queryText,
           })
           .select('id')
           .single();

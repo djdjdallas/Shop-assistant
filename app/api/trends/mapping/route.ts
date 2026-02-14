@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       created_at,
       google_trends_queries (
         id,
-        query_text,
+        query,
         created_at
       )
     `)
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
       .from('google_trends_queries')
       .select('id')
       .eq('shop_id', shopId)
-      .eq('query_text', queryText)
+      .eq('query', queryText)
       .single();
 
     if (existingQuery) {
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         .from('google_trends_queries')
         .insert({
           shop_id: shopId,
-          query_text: queryText,
+          query: queryText,
         })
         .select('id')
         .single();
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
       created_at,
       google_trends_queries (
         id,
-        query_text
+        query
       )
     `)
     .single();

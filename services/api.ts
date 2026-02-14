@@ -165,6 +165,7 @@ export const saveProductNote = async (payload: {
   productId: string;
   noteText: string;
   tags: string[];
+  author?: string;
 }): Promise<ProductNote> => {
   // Invalidate cache on write
   cache.delete(`notes:${payload.productId}`);
@@ -201,6 +202,50 @@ export const removeCompetitor = async (competitorId: string, productId?: string)
   }
   await requestJson<{ success: boolean }>(`/api/competitors/${competitorId}`, {
     method: 'DELETE',
+  });
+};
+
+// --- Trends API ---
+
+export interface TrendMapping {
+  id: string;
+  product_id: string;
+  trends_query_id: string;
+  created_at: string;
+  google_trends_queries: {
+    id: string;
+    query: string;
+    created_at: string;
+  } | null;
+}
+
+export const fetchTrendMappings = async (productId: string): Promise<TrendMapping[]> => {
+  const params = new URLSearchParams({ productId });
+  const cacheKey = `trends-mappings:${productId}`;
+  return requestJson<TrendMapping[]>(`/api/trends/mapping?${params.toString()}`, undefined, cacheKey);
+};
+
+export const addTrendMapping = async (productId: string, queryText: string): Promise<TrendMapping> => {
+  cache.delete(`trends-mappings:${productId}`);
+  return requestJson<TrendMapping>('/api/trends/mapping', {
+    method: 'POST',
+    body: JSON.stringify({ productId, queryText }),
+  });
+};
+
+export const removeTrendMapping = async (mappingId: string): Promise<void> => {
+  await requestJson<{ success: boolean }>(`/api/trends/mapping?mappingId=${mappingId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const fetchTrendsData = async (
+  queryId: string,
+  queryText?: string
+): Promise<{ success: boolean; queryId: string; dataPoints: number }> => {
+  return requestJson<{ success: boolean; queryId: string; dataPoints: number }>('/api/trends/fetch', {
+    method: 'POST',
+    body: JSON.stringify({ queryId, queryText }),
   });
 };
 

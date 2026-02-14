@@ -1,26 +1,40 @@
 import React, { useState, useCallback } from 'react';
 import { ProductNote } from '../types';
+import { Insight } from '../services/insightEngine';
 import { saveProductNote } from '../services/api';
-import { FileText, Send, User, Tag, Plus, X } from 'lucide-react';
+import { FileText, Send, Tag, X, Sparkles, Check, XCircle } from 'lucide-react';
 
 interface NoteEditorProps {
   initialNotes: ProductNote[];
   loading: boolean;
   onNoteAdded: (note: ProductNote) => void;
   productId: string;
-  filterTag: string; // Passed from parent to filter the feed
+  filterTag: string;
+  insights?: Insight[];
+  onApproveInsight?: (insight: Insight) => void;
+  onDismissInsight?: (key: string) => void;
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAdded, productId, filterTag }) => {
+const NoteEditor: React.FC<NoteEditorProps> = ({
+  initialNotes,
+  loading,
+  onNoteAdded,
+  productId,
+  filterTag,
+  insights = [],
+  onApproveInsight,
+  onDismissInsight,
+}) => {
   const [newNoteText, setNewNoteText] = useState('');
   const [newTags, setNewTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isInputExpanded, setIsInputExpanded] = useState(false);
+  const [approvingKey, setApprovingKey] = useState<string | null>(null);
 
   const handleSave = useCallback(async () => {
     if (!newNoteText.trim()) return;
-    
+
     setIsSaving(true);
     try {
       const savedNote = await saveProductNote({
@@ -29,8 +43,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
         tags: newTags,
       });
       onNoteAdded(savedNote);
-      
-      // Reset form
+
       setNewNoteText('');
       setNewTags([]);
       setIsInputExpanded(false);
@@ -56,10 +69,32 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
     setNewTags(newTags.filter(t => t !== tagToRemove));
   };
 
-  // Filter notes based on the parent filterTag
-  const displayedNotes = initialNotes.filter(note => 
+  const handleApprove = useCallback(async (insight: Insight) => {
+    setApprovingKey(insight.key);
+    try {
+      if (onApproveInsight) {
+        onApproveInsight(insight);
+      }
+    } finally {
+      setApprovingKey(null);
+    }
+  }, [onApproveInsight]);
+
+  const displayedNotes = initialNotes.filter(note =>
     !filterTag || (note.tags && note.tags.some(t => t.toLowerCase().includes(filterTag.toLowerCase())))
   );
+
+  const severityStyles = {
+    critical: 'border-red-200 bg-red-50/50',
+    warning: 'border-amber-200 bg-amber-50/50',
+    info: 'border-purple-200 bg-purple-50/50',
+  };
+
+  const severityBadge = {
+    critical: 'bg-red-100 text-red-700',
+    warning: 'bg-amber-100 text-amber-700',
+    info: 'bg-purple-100 text-purple-700',
+  };
 
   if (loading) {
     return (
@@ -75,12 +110,65 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
           <FileText className="w-4 h-4 text-gray-500" />
           Team Notes & Timeline
+          {insights.length > 0 && (
+            <span className="ml-auto text-[10px] font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              {insights.length} insight{insights.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </h3>
       </div>
-      
+
       {/* Scrollable Timeline Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30">
-        {displayedNotes.length === 0 ? (
+
+        {/* Insight Cards */}
+        {insights.map((insight) => (
+          <div
+            key={insight.key}
+            className={`p-3 rounded-lg border shadow-sm ${severityStyles[insight.severity]}`}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 text-white" />
+                </div>
+                <span className="text-xs font-semibold text-gray-900">Sidekick</span>
+                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${severityBadge[insight.severity]}`}>
+                  {insight.severity}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleApprove(insight)}
+                  disabled={approvingKey === insight.key}
+                  className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors disabled:opacity-50"
+                  title="Approve — save as a note"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => onDismissInsight?.(insight.key)}
+                  className="p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded transition-colors"
+                  title="Dismiss"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap mb-2">{insight.text}</p>
+            <div className="flex flex-wrap gap-1">
+              {insight.tags.map((tag, i) => (
+                <span key={i} className="bg-purple-100/70 text-purple-600 px-1.5 py-0.5 rounded text-[10px] border border-purple-200/50">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Existing Notes */}
+        {displayedNotes.length === 0 && insights.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-gray-400 italic">No notes found {filterTag ? `matching "${filterTag}"` : ''}</p>
           </div>
@@ -89,9 +177,15 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
             <div key={note.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold">
-                    {note.author.charAt(0)}
-                  </div>
+                  {note.author === 'Sidekick' ? (
+                    <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <Sparkles className="w-3 h-3 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold">
+                      {note.author.charAt(0)}
+                    </div>
+                  )}
                   <span className="text-xs font-semibold text-gray-900">{note.author}</span>
                 </div>
                 <span className="text-[10px] text-gray-400">
@@ -116,7 +210,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
       {/* Input Area */}
       <div className="p-3 border-t border-gray-100 bg-white rounded-b-lg">
         {!isInputExpanded && !isSaving ? (
-          <button 
+          <button
             onClick={() => setIsInputExpanded(true)}
             className="w-full text-left text-sm text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md p-2 transition-colors"
           >
@@ -132,7 +226,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
               value={newNoteText}
               onChange={(e) => setNewNoteText(e.target.value)}
             />
-            
+
             {/* Tag Inputs */}
             <div className="flex items-center gap-2">
                <Tag className="w-3.5 h-3.5 text-gray-400" />
@@ -143,7 +237,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ initialNotes, loading, onNoteAd
                       <button onClick={() => removeTag(tag)} className="hover:text-blue-900"><X size={10} /></button>
                     </span>
                   ))}
-                  <input 
+                  <input
                     type="text"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
