@@ -70,6 +70,25 @@ const ProductAdminBlock: React.FC<ProductAdminBlockProps> = ({ product }) => {
     setNotes(prev => [newNote, ...prev]);
   };
 
+  const handleSeed = async () => {
+    const res = await fetch('/api/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: product.id }),
+    });
+    if (!res.ok) throw new Error('Seed failed');
+
+    // Refresh all data after seeding
+    const [statsData, notesData, competitorsData] = await Promise.all([
+      fetchProductStats(product.id, period),
+      fetchProductNotes(product.id),
+      fetchCompetitors(product.id),
+    ]);
+    setStats(statsData);
+    setNotes(notesData);
+    setCompetitors(competitorsData);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -108,12 +127,13 @@ const ProductAdminBlock: React.FC<ProductAdminBlockProps> = ({ product }) => {
       <div className="grid grid-cols-1 gap-4">
         
         {/* Analytics Card */}
-        <StatsCard 
-          stats={stats} 
-          loading={loadingStats} 
-          period={period} 
+        <StatsCard
+          stats={stats}
+          loading={loadingStats}
+          period={period}
           inventory={product.inventory}
-          onPeriodChange={setPeriod} 
+          onPeriodChange={setPeriod}
+          onSeed={handleSeed}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

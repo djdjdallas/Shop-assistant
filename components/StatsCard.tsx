@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ComposedChart } from 'recharts';
 import { ProductStats } from '../types';
-import { TrendingUp, DollarSign, Package, Download, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { TrendingUp, DollarSign, Package, Download, CheckCircle, AlertCircle, AlertTriangle, Database, Loader2 } from 'lucide-react';
 
 interface StatsCardProps {
   stats: ProductStats | null;
@@ -9,11 +9,13 @@ interface StatsCardProps {
   period: '30d' | '90d';
   inventory: number; // passed from product context
   onPeriodChange: (period: '30d' | '90d') => void;
+  onSeed?: () => Promise<void>;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ stats, loading, period, inventory, onPeriodChange }) => {
+const StatsCard: React.FC<StatsCardProps> = ({ stats, loading, period, inventory, onPeriodChange, onSeed }) => {
   const [isConfirmingExport, setIsConfirmingExport] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   // --- Inventory Health Logic ---
   const inventoryHealth = useMemo(() => {
@@ -142,8 +144,21 @@ const StatsCard: React.FC<StatsCardProps> = ({ stats, loading, period, inventory
           <Package className="w-10 h-10 text-gray-300 mb-3" />
           <p className="text-sm font-medium text-gray-600">No analytics data yet</p>
           <p className="text-xs text-gray-400 mt-1 max-w-xs">
-            Sales data will appear here once orders come in. You can also seed demo data via the <code className="bg-gray-100 px-1 rounded text-[11px]">POST /api/seed</code> endpoint.
+            Sales data will appear here once orders come in, or seed demo data to preview the dashboard.
           </p>
+          {onSeed && (
+            <button
+              onClick={async () => {
+                setSeeding(true);
+                try { await onSeed(); } finally { setSeeding(false); }
+              }}
+              disabled={seeding}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md transition-colors"
+            >
+              {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
+              {seeding ? 'Seeding...' : 'Seed Demo Data'}
+            </button>
+          )}
         </div>
       </div>
     );
