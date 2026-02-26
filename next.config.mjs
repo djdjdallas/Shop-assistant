@@ -31,8 +31,8 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com",
+              "font-src 'self' https://fonts.gstatic.com https://cdn.fontshare.com",
               "img-src 'self' data: https: blob:",
               "connect-src 'self' https://*.myshopify.com https://*.shopify.com wss://*.shopify.com https://*.supabase.co",
               "frame-ancestors 'self' https://*.myshopify.com https://admin.shopify.com",
