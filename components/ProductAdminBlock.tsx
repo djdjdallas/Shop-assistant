@@ -85,6 +85,14 @@ const ProductAdminBlock: React.FC<ProductAdminBlockProps> = ({ product }) => {
     setNotes(prev => [newNote, ...prev]);
   };
 
+  const handleNoteUpdated = (updatedNote: ProductNote) => {
+    setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+  };
+
+  const handleNoteDeleted = (noteId: string) => {
+    setNotes(prev => prev.filter(n => n.id !== noteId));
+  };
+
   const handleApproveInsight = useCallback(async (insight: Insight) => {
     try {
       const savedNote = await saveProductNote({
@@ -181,6 +189,8 @@ const ProductAdminBlock: React.FC<ProductAdminBlockProps> = ({ product }) => {
              initialNotes={notes}
              loading={loadingNotes}
              onNoteAdded={handleNoteAdded}
+             onNoteUpdated={handleNoteUpdated}
+             onNoteDeleted={handleNoteDeleted}
              productId={product.id}
              filterTag={filterTag}
              insights={insights}

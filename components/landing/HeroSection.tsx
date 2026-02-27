@@ -8,7 +8,7 @@ export default function HeroSection() {
       <div className="flex flex-col lg:flex-row gap-16 items-start">
         <div className="lg:w-1/2 animate-slide-up">
           <div className="inline-flex items-center px-2 py-1 bg-cyan-100 text-cyan-700 font-mono text-[10px] font-bold rounded mb-6 border border-cyan-200 animate-pulse-cyan">
-            v2.0 RELEASED
+            BETA
           </div>
           <h1 className="text-[64px] font-display font-semibold leading-[0.9] tracking-[0.04em] uppercase text-gray-900 mb-8">
             ADMIN
@@ -21,15 +21,12 @@ export default function HeroSection() {
           </p>
           <div className="flex items-center gap-4">
             <a
-              href="#"
+              href="/dashboard"
               className="flex items-center gap-3 bg-[#06B6D4] hover:bg-[#0891b2] text-white px-8 py-4 rounded-md font-semibold transition-all shadow-lg active:scale-[0.98]"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span>View on Shopify App Store</span>
+              <span>Open Dashboard</span>
             </a>
-            <div className="flex items-center gap-2 px-6 py-4 text-gray-600 font-medium cursor-help hover:text-cyan-600 transition-colors">
-              <span className="font-mono text-xs">[⌘+K] for Quick Demo</span>
-            </div>
           </div>
         </div>
 

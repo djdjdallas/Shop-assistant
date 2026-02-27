@@ -4,12 +4,12 @@ const faqs = [
   {
     question: 'How does the competitor tracking stay updated?',
     answer:
-      'We provide a manual input interface that syncs across your team. For enterprise plans, we offer automated price scraping that updates every 24 hours and triggers alerts when a competitor drops below your minimum advertised price (MAP).',
+      'You manually add competitors with their name, URL, and current price. Sidekick automatically generates undercut alerts when a competitor\'s price drops below yours, surfaced as insights in your notes timeline.',
   },
   {
     question: 'Will this slow down my admin page load speed?',
     answer:
-      'No. Sidekick is built with a lazy-loading architecture. It only fetches data once the Shopify product DOM is fully ready, ensuring it never blocks your core admin interactions.',
+      'No. Sidekick loads data asynchronously after the page renders, with automatic retry logic and an in-memory cache to keep repeat visits fast. It never blocks your core admin interactions.',
   },
   {
     question: 'Is my internal data shared with Shopify?',

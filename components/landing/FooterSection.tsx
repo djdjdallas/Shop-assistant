@@ -11,19 +11,16 @@ export default function FooterSection() {
           <div>
             <div className="text-sm font-bold text-gray-900">Product Admin Sidekick</div>
             <div className="text-[10px] font-mono text-gray-400">
-              &copy; 2024 Sidekick DevSystems Inc.
+              &copy; {new Date().getFullYear()} Sidekick DevSystems Inc.
             </div>
           </div>
         </div>
         <div className="flex items-center gap-8">
-          <a href="#" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
-            Documentation
-          </a>
-          <a href="#" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
+          <a href="/privacy" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
             Privacy Policy
           </a>
-          <a href="#" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
-            Support Terminal
+          <a href="mailto:support@productadminsidekick.com" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
+            Support
           </a>
           <div className="flex gap-4 border-l border-gray-100 pl-8">
             <Twitter className="w-4 h-4 text-gray-400 hover:text-cyan-500 cursor-pointer" />

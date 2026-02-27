@@ -43,13 +43,19 @@ export default function ReadmeSection() {
           <div className="pt-6">
             <div className="bg-[#010409] border border-[#30363d] p-4 rounded-md font-mono">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-green-500">$</span>
+                <span className="text-green-500">1.</span>
                 <span className="text-gray-300">
-                  npx sidekick-installer --shop-id=YOUR_STORE_ID
+                  Install from the Shopify App Store
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-green-500">2.</span>
+                <span className="text-gray-300">
+                  Approve OAuth permissions for your store
                 </span>
               </div>
               <div className="text-gray-500 italic">
-                // Initiating secure installation to Shopify Admin...
+                // Sidekick appears on every product page automatically
               </div>
             </div>
           </div>

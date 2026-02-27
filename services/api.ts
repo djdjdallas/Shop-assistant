@@ -175,6 +175,26 @@ export const saveProductNote = async (payload: {
   });
 };
 
+export const updateProductNote = async (payload: {
+  noteId: string;
+  noteText: string;
+  tags: string[];
+  productId: string;
+}): Promise<ProductNote> => {
+  cache.delete(`notes:${payload.productId}`);
+  return requestJson<ProductNote>('/api/notes', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteProductNote = async (noteId: string, productId: string): Promise<void> => {
+  cache.delete(`notes:${productId}`);
+  await requestJson<{ success: boolean }>(`/api/notes?noteId=${noteId}`, {
+    method: 'DELETE',
+  });
+};
+
 export const fetchCompetitors = async (productId: string): Promise<Competitor[]> => {
   const params = new URLSearchParams({ productId });
   const cacheKey = `competitors:${productId}`;

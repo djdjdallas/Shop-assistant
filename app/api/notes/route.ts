@@ -69,3 +69,65 @@ export async function POST(request: Request) {
 
   return NextResponse.json(data);
 }
+
+export async function PUT(request: Request) {
+  const body = await request.json();
+
+  const authenticatedShop = await getAuthenticatedShop(request);
+  const shopId = authenticatedShop?.id || resolveShopId(request, body);
+
+  if (!shopId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!body?.noteId || !body?.noteText) {
+    return NextResponse.json({ error: 'noteId and noteText are required' }, { status: 400 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('product_notes')
+    .update({
+      note_text: body.noteText,
+      tags: body.tags ?? [],
+    })
+    .eq('id', body.noteId)
+    .eq('shop_id', shopId)
+    .select('*')
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
+}
+
+export async function DELETE(request: Request) {
+  const url = new URL(request.url);
+  const noteId = url.searchParams.get('noteId');
+
+  const authenticatedShop = await getAuthenticatedShop(request);
+  const shopId = authenticatedShop?.id || resolveShopId(request);
+
+  if (!shopId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!noteId) {
+    return NextResponse.json({ error: 'noteId is required' }, { status: 400 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase
+    .from('product_notes')
+    .delete()
+    .eq('id', noteId)
+    .eq('shop_id', shopId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

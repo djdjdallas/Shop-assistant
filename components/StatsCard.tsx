@@ -20,14 +20,22 @@ const StatsCard: React.FC<StatsCardProps> = ({ stats, loading, period, inventory
   // --- Inventory Health Logic ---
   const inventoryHealth = useMemo(() => {
     if (!stats || stats.units_sold === 0) return null;
-    
-    // Calculate daily sales velocity over the period
-    const daysInPeriod = period === '30d' ? 30 : 90;
-    const velocity = stats.units_sold / daysInPeriod; 
-    
+
+    // Prefer 7-day velocity from recent daily_breakdown entries when available
+    let velocity: number;
+    const breakdown = stats.daily_breakdown;
+    if (breakdown && breakdown.length >= 7) {
+      const last7 = breakdown.slice(-7);
+      const recentUnits = last7.reduce((sum, d) => sum + d.units, 0);
+      velocity = recentUnits / 7;
+    } else {
+      const daysInPeriod = period === '30d' ? 30 : 90;
+      velocity = stats.units_sold / daysInPeriod;
+    }
+
     // Estimate days remaining
-    const daysRemaining = Math.floor(inventory / velocity);
-    
+    const daysRemaining = velocity > 0 ? Math.floor(inventory / velocity) : Infinity;
+
     let status: 'good' | 'warning' | 'critical' = 'good';
     if (daysRemaining < 7) status = 'critical';
     else if (daysRemaining < 21) status = 'warning';

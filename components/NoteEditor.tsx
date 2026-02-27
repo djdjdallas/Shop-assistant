@@ -1,13 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { ProductNote } from '../types';
 import { Insight } from '../services/insightEngine';
-import { saveProductNote } from '../services/api';
-import { FileText, Send, Tag, X, Sparkles, Check, XCircle } from 'lucide-react';
+import { saveProductNote, updateProductNote, deleteProductNote } from '../services/api';
+import { FileText, Send, Tag, X, Sparkles, Check, XCircle, Pencil, Trash2 } from 'lucide-react';
 
 interface NoteEditorProps {
   initialNotes: ProductNote[];
   loading: boolean;
   onNoteAdded: (note: ProductNote) => void;
+  onNoteUpdated?: (note: ProductNote) => void;
+  onNoteDeleted?: (noteId: string) => void;
   productId: string;
   filterTag: string;
   insights?: Insight[];
@@ -19,6 +21,8 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   initialNotes,
   loading,
   onNoteAdded,
+  onNoteUpdated,
+  onNoteDeleted,
   productId,
   filterTag,
   insights = [],
@@ -31,6 +35,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isInputExpanded, setIsInputExpanded] = useState(false);
   const [approvingKey, setApprovingKey] = useState<string | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const handleSave = useCallback(async () => {
     if (!newNoteText.trim()) return;
@@ -79,6 +87,41 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
       setApprovingKey(null);
     }
   }, [onApproveInsight]);
+
+  const startEdit = useCallback((note: ProductNote) => {
+    setEditingNoteId(note.id);
+    setEditText(note.note_text);
+    setEditTags(note.tags || []);
+  }, []);
+
+  const handleUpdate = useCallback(async () => {
+    if (!editingNoteId || !editText.trim()) return;
+    setIsUpdating(true);
+    try {
+      const updated = await updateProductNote({
+        noteId: editingNoteId,
+        noteText: editText,
+        tags: editTags,
+        productId,
+      });
+      onNoteUpdated?.(updated);
+      setEditingNoteId(null);
+    } catch (error) {
+      console.error('Failed to update note', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [editingNoteId, editText, editTags, productId, onNoteUpdated]);
+
+  const handleDelete = useCallback(async (noteId: string) => {
+    if (!window.confirm('Delete this note?')) return;
+    try {
+      await deleteProductNote(noteId, productId);
+      onNoteDeleted?.(noteId);
+    } catch (error) {
+      console.error('Failed to delete note', error);
+    }
+  }, [productId, onNoteDeleted]);
 
   const displayedNotes = initialNotes.filter(note =>
     !filterTag || (note.tags && note.tags.some(t => t.toLowerCase().includes(filterTag.toLowerCase())))
@@ -174,33 +217,78 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           </div>
         ) : (
           displayedNotes.map((note) => (
-            <div key={note.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                  {note.author === 'Sidekick' ? (
-                    <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
-                      <Sparkles className="w-3 h-3 text-white" />
+            <div key={note.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm group/note">
+              {editingNoteId === note.id ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                    rows={3}
+                    autoFocus
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setEditingNoteId(null)}
+                      className="px-3 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-md"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdate}
+                      disabled={!editText.trim() || isUpdating}
+                      className="px-3 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+                    >
+                      {isUpdating ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      {note.author === 'Sidekick' ? (
+                        <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                          <Sparkles className="w-3 h-3 text-white" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold">
+                          {note.author.charAt(0)}
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold text-gray-900">{note.author}</span>
                     </div>
-                  ) : (
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-xs font-bold">
-                      {note.author.charAt(0)}
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] text-gray-400">
+                        {new Date(note.created_at).toLocaleDateString()}
+                      </span>
+                      <button
+                        onClick={() => startEdit(note)}
+                        className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-0 group-hover/note:opacity-100"
+                        title="Edit note"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(note.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover/note:opacity-100"
+                        title="Delete note"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap mb-2">{note.note_text}</p>
+                  {note.tags && note.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {note.tags.map((tag, i) => (
+                         <span key={i} className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] border border-gray-200">
+                           #{tag}
+                         </span>
+                      ))}
                     </div>
                   )}
-                  <span className="text-xs font-semibold text-gray-900">{note.author}</span>
-                </div>
-                <span className="text-[10px] text-gray-400">
-                  {new Date(note.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap mb-2">{note.note_text}</p>
-              {note.tags && note.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {note.tags.map((tag, i) => (
-                     <span key={i} className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] border border-gray-200">
-                       #{tag}
-                     </span>
-                  ))}
-                </div>
+                </>
               )}
             </div>
           ))
