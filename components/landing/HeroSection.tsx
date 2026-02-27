@@ -25,7 +25,7 @@ export default function HeroSection() {
               className="flex items-center gap-3 bg-[#06B6D4] hover:bg-[#0891b2] text-white px-8 py-4 rounded-md font-semibold transition-all shadow-lg active:scale-[0.98]"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span>Open Dashboard</span>
+              <span>Try on Shopify</span>
             </a>
           </div>
         </div>
