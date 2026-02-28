@@ -18,18 +18,24 @@ export async function getAuthenticatedShop(
   const authHeader = request.headers.get('Authorization');
   const sessionToken = authHeader?.replace('Bearer ', '');
 
+  console.log('[AUTH] Authorization header present:', !!authHeader);
+  console.log('[AUTH] Session token present:', !!sessionToken);
+
   if (sessionToken) {
     try {
       // Dynamically import to avoid build-time initialization
       const { getSessionFromToken } = await import('./shopify');
       const session = await getSessionFromToken(sessionToken);
+      console.log('[AUTH] Session from token:', session ? { shop: session.shop, hasAccessToken: !!session.accessToken } : 'null');
       if (session?.accessToken) {
         const supabase = getSupabaseServerClient();
-        const { data: shop } = await supabase
+        const { data: shop, error: shopError } = await supabase
           .from('shops')
           .select('id')
           .eq('shop_domain', session.shop)
           .single();
+
+        console.log('[AUTH] Shop lookup result:', { shopId: shop?.id, error: shopError?.message });
 
         return {
           id: shop?.id || session.shop.replace('.myshopify.com', ''),
@@ -38,7 +44,7 @@ export async function getAuthenticatedShop(
         };
       }
     } catch (error) {
-      console.error('Error validating session token:', error);
+      console.error('[AUTH] Error validating session token:', error);
     }
   }
 
