@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     // Redirect to the embedded app
     const redirectUrl = host
       ? `https://${session.shop}/admin/apps/${process.env.SHOPIFY_API_KEY}?host=${host}`
-      : appUrl;
+      : `${appUrl}/dashboard`;
 
     return NextResponse.redirect(redirectUrl);
   } catch (error) {

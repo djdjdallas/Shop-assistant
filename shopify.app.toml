@@ -4,14 +4,14 @@
 client_id = "" # Set via SHOPIFY_API_KEY env var or update here after app creation
 name = "Product Admin Sidekick"
 handle = "product-admin-sidekick"
-application_url = "https://your-app.vercel.app" # Replace with your Vercel deployment URL
+application_url = "https://productsidekick.store/dashboard"
 
 [access_scopes]
 scopes = "read_products,write_products,read_orders,read_inventory"
 
 [auth]
 redirect_urls = [
-  "https://your-app.vercel.app/api/auth/callback", # Replace with your Vercel deployment URL
+  "https://productsidekick.store/api/auth/callback",
   "https://localhost:3000/api/auth/callback"
 ]
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { ProductContext, ProductStats, ProductNote, Competitor } from '../types';
-import { fetchProductStats, fetchProductNotes, fetchCompetitors, saveProductNote } from '../services/api';
+import { fetchProductStats, fetchProductNotes, fetchCompetitors, saveProductNote, seedDemoData } from '../services/api';
 import { generateInsights, Insight } from '../services/insightEngine';
 import StatsCard from './StatsCard';
 import NoteEditor from './NoteEditor';
@@ -113,12 +113,7 @@ const ProductAdminBlock: React.FC<ProductAdminBlockProps> = ({ product }) => {
   }, []);
 
   const handleSeed = async () => {
-    const res = await fetch('/api/seed', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId: product.id }),
-    });
-    if (!res.ok) throw new Error('Seed failed');
+    await seedDemoData(product.id);
 
     const [statsData, notesData, competitorsData] = await Promise.all([
       fetchProductStats(product.id, period),

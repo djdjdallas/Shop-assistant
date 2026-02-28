@@ -277,6 +277,18 @@ export const fetchTrendsData = async (
   });
 };
 
+export const seedDemoData = async (productId: string): Promise<{ success: boolean; results: Record<string, string> }> => {
+  // Invalidate caches
+  cache.delete(`stats:${productId}:30d`);
+  cache.delete(`stats:${productId}:90d`);
+  cache.delete(`notes:${productId}`);
+  cache.delete(`competitors:${productId}`);
+  return requestJson('/api/seed', {
+    method: 'POST',
+    body: JSON.stringify({ productId }),
+  });
+};
+
 // Clear all cached data
 export const clearCache = (): void => {
   cache.clear();
