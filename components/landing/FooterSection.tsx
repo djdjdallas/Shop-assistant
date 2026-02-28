@@ -19,7 +19,7 @@ export default function FooterSection() {
           <a href="/privacy" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
             Privacy Policy
           </a>
-          <a href="mailto:support@productadminsidekick.com" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
+          <a href="mailto:support@productsidekick.store" className="text-xs text-gray-500 hover:text-cyan-500 transition-colors">
             Support
           </a>
           <div className="flex gap-4 border-l border-gray-100 pl-8">

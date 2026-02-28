@@ -105,7 +105,7 @@ export default function PrivacyPolicy() {
           please contact us at:
         </p>
         <p>
-          <strong>Email:</strong> support@productadminsidekick.com
+          <strong>Email:</strong> support@productsidekick.store
         </p>
       </div>
     </div>
