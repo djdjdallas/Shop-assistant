@@ -211,6 +211,8 @@ shopify app webhook trigger --topic customers/data_request --address https://you
 
 ### 7a. Prepare Your App Listing
 
+> **Full listing content is in [`APP_LISTING.md`](./APP_LISTING.md).** Copy the descriptions and feature list from there into the Partner Dashboard.
+
 In the Partner Dashboard, go to your app → **App listing**:
 
 **Required fields:**
@@ -218,19 +220,21 @@ In the Partner Dashboard, go to your app → **App listing**:
 - **App name:** Product Admin Sidekick
 - **App icon:** 1200x1200px PNG or JPG
 - **Short description** (max 100 chars):
-  > Product analytics, notes, competitor tracking, and sales forecasting for Shopify merchants.
-- **Detailed description:** Explain each feature — notes, competitor tracking, trend analysis, forecasting, and product analytics.
+  > Product intelligence, team notes, and sales forecasting — right inside your Shopify admin.
+- **Detailed description:** See `APP_LISTING.md` for the full description and feature breakdown covering team notes, AI insights, inventory forecasting, sales analytics, competitor tracking, and Google Trends integration.
 - **Screenshots:** At least 3 screenshots showing the app in action (1600x900px recommended):
-  1. Product analytics dashboard
-  2. Notes and competitor tracking panel
-  3. Trend analysis / forecasting view
+  1. Product analytics dashboard (StatsCard with revenue, units, velocity, and forecast)
+  2. Notes & insights panel (NoteEditor with team notes, tags, and AI-generated insights)
+  3. Competitor tracking (CompetitorTracker with price entries and undercut alerts)
+  4. Trends view (TrendsCard with Google Trends chart for a product category)
 - **Category:** Store management → Inventory management (or Analytics)
 - **Pricing:** Set your pricing model (free, paid, or freemium)
 
 **URLs:**
 
-- **Privacy policy URL:** `https://your-app.vercel.app/privacy`
-- **Support URL or email:** Your support contact
+- **Privacy policy URL:** `https://productsidekick.store/privacy`
+- **Terms of service URL:** `https://productsidekick.store/terms`
+- **Support email:** `support@productsidekick.store`
 - **FAQ URL:** (optional)
 
 ### 7b. Submit for Review
