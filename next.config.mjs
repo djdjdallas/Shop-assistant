@@ -2,7 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  // Security headers
+  // Security headers — CSP is handled exclusively by middleware.ts
+  // to avoid duplicate/conflicting Content-Security-Policy headers.
   async headers() {
     return [
       {
@@ -12,31 +13,13 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
-{
+          {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
           },
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
-      {
-        // Special CSP for embedded Shopify apps
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com",
-              "font-src 'self' https://fonts.gstatic.com https://cdn.fontshare.com",
-              "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://*.myshopify.com https://*.shopify.com wss://*.shopify.com https://*.supabase.co",
-              "frame-ancestors 'self' https://*.myshopify.com https://admin.shopify.com",
-            ].join('; '),
           },
         ],
       },
