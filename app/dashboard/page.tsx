@@ -125,6 +125,18 @@ export default function Page() {
     }
   }, [authLoading, getToken]);
 
+  // Safety timeout: if still loading after 10s, force past the spinner
+  // so the user can at least interact with the product picker.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading || authLoading) {
+        console.warn('Dashboard loading timed out after 10s, forcing past spinner');
+        setIsLoading(false);
+      }
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, [isLoading, authLoading]);
+
   if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">

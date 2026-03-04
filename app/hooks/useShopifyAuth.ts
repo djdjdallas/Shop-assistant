@@ -34,9 +34,18 @@ export function useShopifyAuth(): UseShopifyAuthResult {
       const appBridge = (window as unknown as { shopify?: { idToken?: () => Promise<string> } }).shopify;
 
       if (appBridge?.idToken) {
-        const token = await appBridge.idToken();
-        setSessionToken(token);
-        return token;
+        // Timeout after 5s — idToken() can hang if App Bridge isn't fully
+        // initialized or the API key doesn't match the embedded context.
+        const token = await Promise.race([
+          appBridge.idToken(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+        ]);
+
+        if (token) {
+          setSessionToken(token);
+          return token;
+        }
+        console.warn('App Bridge idToken() timed out or returned null, continuing without token');
       }
 
       // Fallback: check URL params for embedded context
