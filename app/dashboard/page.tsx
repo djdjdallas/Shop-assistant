@@ -66,19 +66,11 @@ export default function Page() {
 
     setIsPickerLoading(true);
     try {
-      // Wait for App Bridge to be fully ready before opening picker
-      if (appBridge.ready) {
-        await Promise.race([
-          appBridge.ready(),
-          new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-        ]);
-      }
-
       if (appBridge.resourcePicker) {
         // Timeout the resource picker — it can hang if App Bridge auth failed
         const selected = await Promise.race([
           appBridge.resourcePicker({ type: 'product' }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
         ]);
 
         if (selected && Array.isArray(selected) && selected.length > 0) {

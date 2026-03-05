@@ -34,28 +34,18 @@ export function useShopifyAuth(): UseShopifyAuthResult {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const appBridge = (window as unknown as { shopify?: any }).shopify;
 
-      if (appBridge) {
-        // Wait for App Bridge to be fully initialized before calling methods
-        if (appBridge.ready) {
-          await Promise.race([
-            appBridge.ready(),
-            new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-          ]);
-        }
+      if (appBridge?.idToken) {
+        // Timeout after 3s — idToken() can hang if App Bridge config is wrong
+        const token = await Promise.race([
+          appBridge.idToken(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
 
-        if (appBridge.idToken) {
-          // Timeout after 3s — idToken() can hang if App Bridge config is wrong
-          const token = await Promise.race([
-            appBridge.idToken(),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-          ]);
-
-          if (token) {
-            setSessionToken(token);
-            return token;
-          }
-          console.warn('App Bridge idToken() timed out or returned null, continuing without token');
+        if (token) {
+          setSessionToken(token);
+          return token;
         }
+        console.warn('App Bridge idToken() timed out, continuing without token');
       }
 
       // Fallback: check URL params for embedded context
