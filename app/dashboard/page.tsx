@@ -58,8 +58,6 @@ export default function Page() {
   const openProductPicker = async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const appBridge = (window as unknown as { shopify?: any }).shopify;
-    console.log('App Bridge available:', !!appBridge);
-    console.log('App Bridge keys:', appBridge ? Object.keys(appBridge) : 'none');
 
     if (!appBridge) {
       alert('Shopify App Bridge is not available. Make sure you are viewing this app inside the Shopify admin.');
@@ -68,15 +66,31 @@ export default function Page() {
 
     setIsPickerLoading(true);
     try {
+      // Wait for App Bridge to be fully ready before opening picker
+      if (appBridge.ready) {
+        await Promise.race([
+          appBridge.ready(),
+          new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+        ]);
+      }
+
       if (appBridge.resourcePicker) {
-        const selected = await appBridge.resourcePicker({ type: 'product', multiple: false });
-        if (selected && selected.length > 0) {
+        // Timeout the resource picker — it can hang if App Bridge auth failed
+        const selected = await Promise.race([
+          appBridge.resourcePicker({ type: 'product' }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+        ]);
+
+        if (selected && Array.isArray(selected) && selected.length > 0) {
           const selectedId = selected[0].id;
           await fetchProduct(selectedId);
+        } else if (selected === null) {
+          console.warn('Resource picker timed out');
+          alert('Product picker timed out. Try reloading the app from the Shopify admin sidebar.');
         }
+        // If selected is empty array, user cancelled — do nothing
       } else {
-        console.log('resourcePicker not available, available methods:', Object.keys(appBridge));
-        alert('Resource picker not available. App Bridge methods: ' + Object.keys(appBridge).join(', '));
+        alert('Resource picker not available. Try reloading the page.');
       }
     } catch (err) {
       console.error('Resource picker error:', err);

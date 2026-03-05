@@ -31,21 +31,31 @@ export function useShopifyAuth(): UseShopifyAuthResult {
 
     try {
       // Check if App Bridge is available (loaded by Shopify admin)
-      const appBridge = (window as unknown as { shopify?: { idToken?: () => Promise<string> } }).shopify;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const appBridge = (window as unknown as { shopify?: any }).shopify;
 
-      if (appBridge?.idToken) {
-        // Timeout after 5s — idToken() can hang if App Bridge isn't fully
-        // initialized or the API key doesn't match the embedded context.
-        const token = await Promise.race([
-          appBridge.idToken(),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-        ]);
-
-        if (token) {
-          setSessionToken(token);
-          return token;
+      if (appBridge) {
+        // Wait for App Bridge to be fully initialized before calling methods
+        if (appBridge.ready) {
+          await Promise.race([
+            appBridge.ready(),
+            new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+          ]);
         }
-        console.warn('App Bridge idToken() timed out or returned null, continuing without token');
+
+        if (appBridge.idToken) {
+          // Timeout after 3s — idToken() can hang if App Bridge config is wrong
+          const token = await Promise.race([
+            appBridge.idToken(),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+          ]);
+
+          if (token) {
+            setSessionToken(token);
+            return token;
+          }
+          console.warn('App Bridge idToken() timed out or returned null, continuing without token');
+        }
       }
 
       // Fallback: check URL params for embedded context
