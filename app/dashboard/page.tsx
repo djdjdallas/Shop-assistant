@@ -20,7 +20,27 @@ export default function Page() {
   const [product, setProduct] = useState<ProductContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPickerLoading, setIsPickerLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const { getToken, isLoading: authLoading } = useShopifyAuth();
+
+  // Diagnostic: log App Bridge state on mount
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="shopify-api-key"]');
+    const apiKey = meta?.getAttribute('content') || '(empty)';
+    const params = new URLSearchParams(window.location.search);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = (window as unknown as { shopify?: any }).shopify;
+    const info = [
+      `API Key in meta: ${apiKey.substring(0, 8)}...${apiKey.length > 8 ? apiKey.substring(apiKey.length - 4) : ''}`,
+      `shop param: ${params.get('shop') || '(none)'}`,
+      `host param: ${params.get('host') ? 'present' : '(none)'}`,
+      `App Bridge: ${sb ? 'loaded' : 'missing'}`,
+      `idToken: ${sb?.idToken ? 'available' : 'missing'}`,
+      `resourcePicker: ${sb?.resourcePicker ? 'available' : 'missing'}`,
+    ].join(' | ');
+    console.log('[Sidekick Debug]', info);
+    setDebugInfo(info);
+  }, []);
 
   const fetchProduct = async (productId: string) => {
     try {
@@ -174,6 +194,41 @@ export default function Page() {
           >
             {isPickerLoading ? 'Loading...' : 'Select a Product'}
           </button>
+
+          {/* Fallback: manual product ID entry */}
+          <div className="pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-400 mb-2">Or enter a product ID manually:</p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const input = (e.target as HTMLFormElement).elements.namedItem('productId') as HTMLInputElement;
+                const val = input?.value.trim();
+                if (val) {
+                  const gid = val.startsWith('gid://') ? val : `gid://shopify/Product/${val}`;
+                  fetchProduct(gid);
+                }
+              }}
+              className="flex gap-2"
+            >
+              <input
+                name="productId"
+                type="text"
+                placeholder="e.g. 7982340091"
+                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1.5 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Load
+              </button>
+            </form>
+          </div>
+
+          {/* Debug info */}
+          {debugInfo && (
+            <p className="text-[10px] text-gray-300 break-all mt-4">{debugInfo}</p>
+          )}
         </div>
       </div>
     );
