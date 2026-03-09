@@ -11,13 +11,14 @@ export function middleware(request: NextRequest) {
 
   // Add security headers — single source of truth for CSP
   // (next.config.mjs no longer sets CSP to avoid duplicate/conflicting headers)
+  const appUrl = process.env.SHOPIFY_APP_URL || '';
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com",
     "font-src 'self' https://fonts.gstatic.com https://cdn.fontshare.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.myshopify.com https://*.shopify.com https://admin.shopify.com wss://*.shopify.com https://*.supabase.co",
+    `connect-src 'self' ${appUrl} https://*.myshopify.com https://*.shopify.com https://admin.shopify.com wss://*.shopify.com https://*.supabase.co`,
     "frame-ancestors 'self' https://*.myshopify.com https://admin.shopify.com",
     "frame-src 'self' https://*.myshopify.com https://admin.shopify.com",
   ].join('; ');

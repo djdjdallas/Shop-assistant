@@ -23,23 +23,34 @@ export default function Page() {
   const [debugInfo, setDebugInfo] = useState<string>('');
   const { getToken, isLoading: authLoading } = useShopifyAuth();
 
-  // Diagnostic: log App Bridge state on mount
+  // Diagnostic: log App Bridge state on mount (with delay for script loading)
   useEffect(() => {
-    const meta = document.querySelector('meta[name="shopify-api-key"]');
-    const apiKey = meta?.getAttribute('content') || '(empty)';
-    const params = new URLSearchParams(window.location.search);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = (window as unknown as { shopify?: any }).shopify;
-    const info = [
-      `API Key in meta: ${apiKey.substring(0, 8)}...${apiKey.length > 8 ? apiKey.substring(apiKey.length - 4) : ''}`,
-      `shop param: ${params.get('shop') || '(none)'}`,
-      `host param: ${params.get('host') ? 'present' : '(none)'}`,
-      `App Bridge: ${sb ? 'loaded' : 'missing'}`,
-      `idToken: ${sb?.idToken ? 'available' : 'missing'}`,
-      `resourcePicker: ${sb?.resourcePicker ? 'available' : 'missing'}`,
-    ].join(' | ');
-    console.log('[Sidekick Debug]', info);
-    setDebugInfo(info);
+    const checkBridge = () => {
+      const meta = document.querySelector('meta[name="shopify-api-key"]');
+      const apiKey = meta?.getAttribute('content') || '(empty)';
+      const params = new URLSearchParams(window.location.search);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = (window as unknown as { shopify?: any }).shopify;
+      const inIframe = window.self !== window.top;
+      const info = [
+        `API Key: ${apiKey.substring(0, 8)}...${apiKey.length > 8 ? apiKey.substring(apiKey.length - 4) : ''}`,
+        `shop: ${params.get('shop') || '(none)'}`,
+        `host: ${params.get('host') ? 'present' : '(none)'}`,
+        `iframe: ${inIframe ? 'yes' : 'no'}`,
+        `App Bridge: ${sb ? 'loaded' : 'missing'}`,
+        `config: ${sb?.config ? 'yes' : 'no'}`,
+        `idToken: ${sb?.idToken ? 'available' : 'missing'}`,
+        `resourcePicker: ${sb?.resourcePicker ? 'available' : 'missing'}`,
+      ].join(' | ');
+      console.log('[Sidekick Debug]', info);
+      if (!inIframe) {
+        console.warn('[Sidekick] App is NOT in an iframe. App Bridge requires the app to be loaded inside the Shopify Admin.');
+      }
+      setDebugInfo(info);
+    };
+    // Delay slightly to let App Bridge script finish initializing
+    const timer = setTimeout(checkBridge, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchProduct = async (productId: string) => {
@@ -49,11 +60,23 @@ export default function Page() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const response = await fetch(`/api/products/${encodeURIComponent(productId)}`, { headers });
+
+      // Build URL — include shop param as fallback auth when idToken is unavailable
+      let url = `/api/products/${encodeURIComponent(productId)}`;
+      if (!token) {
+        const params = new URLSearchParams(window.location.search);
+        const shop = params.get('shop');
+        if (shop) {
+          url += `?shop=${encodeURIComponent(shop)}`;
+        }
+      }
+
+      const response = await fetch(url, { headers });
       if (response.ok) {
         const data = await response.json();
         setProduct(data);
       } else {
+        console.error('Product fetch failed:', response.status, await response.text().catch(() => ''));
         setProduct({
           id: productId,
           title: 'Unknown Product',
@@ -63,7 +86,8 @@ export default function Page() {
           price: '0.00',
         });
       }
-    } catch {
+    } catch (err) {
+      console.error('Product fetch error:', err);
       setProduct({
         id: productId,
         title: 'Unknown Product',
@@ -84,13 +108,24 @@ export default function Page() {
       return;
     }
 
+    if (window.self === window.top) {
+      alert('This app must be opened from the Shopify Admin to use the product picker. Go to your Shopify Admin → Apps → Sidekick.');
+      return;
+    }
+
     setIsPickerLoading(true);
     try {
       if (appBridge.resourcePicker) {
+        // First ensure we have a valid idToken (App Bridge is connected)
+        const token = await getToken();
+        if (!token) {
+          console.warn('No idToken available — resource picker may not work');
+        }
+
         // Timeout the resource picker — it can hang if App Bridge auth failed
         const selected = await Promise.race([
           appBridge.resourcePicker({ type: 'product' }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
         ]);
 
         if (selected && Array.isArray(selected) && selected.length > 0) {
@@ -98,7 +133,12 @@ export default function Page() {
           await fetchProduct(selectedId);
         } else if (selected === null) {
           console.warn('Resource picker timed out');
-          alert('Product picker timed out. Try reloading the app from the Shopify admin sidebar.');
+          alert(
+            'Product picker timed out. This usually means App Bridge cannot connect to the Shopify Admin.\n\n' +
+            'Try: 1) Reload the app from Shopify Admin sidebar\n' +
+            '2) Verify the app API key matches your Shopify Partners client_id\n' +
+            '3) Use the manual product ID field below as a workaround'
+          );
         }
         // If selected is empty array, user cancelled — do nothing
       } else {
