@@ -26,9 +26,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Decode the session token to get the shop domain
-    const payload = await shopify.session.decodeSessionToken(sessionToken);
-    const shop = payload.dest.replace('https://', '');
+    // Decode the JWT payload without verification to get the shop domain.
+    // We do this first to check for an existing session before full verification.
+    const parts = sessionToken.split('.');
+    if (parts.length !== 3) {
+      return NextResponse.json({ error: 'Invalid token format' }, { status: 400 });
+    }
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    const shop = (payload.dest || '').replace('https://', '');
+
+    if (!shop) {
+      return NextResponse.json({ error: 'No shop in token' }, { status: 400 });
+    }
 
     console.log('[Token Exchange] Starting for shop:', shop);
 
