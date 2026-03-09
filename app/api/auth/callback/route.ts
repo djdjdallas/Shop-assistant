@@ -44,8 +44,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
+    const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: 'OAuth callback failed' },
+      { error: 'OAuth callback failed', detail },
       { status: 500 }
     );
   }

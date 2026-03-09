@@ -165,6 +165,36 @@ export default function Page() {
     setSessionTokenGetter(getToken);
   }, [getToken]);
 
+  // Automatically exchange the id_token for a server-side access token
+  // This replaces the traditional OAuth redirect flow for embedded apps
+  useEffect(() => {
+    const exchangeToken = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const idToken = params.get('id_token');
+      if (!idToken) return;
+
+      try {
+        const res = await fetch('/api/auth/token-exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionToken: idToken }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          console.log('[Auth] Token exchange successful for:', data.shop);
+        } else {
+          console.warn('[Auth] Token exchange failed:', data.error, data.detail);
+        }
+      } catch (err) {
+        console.warn('[Auth] Token exchange request failed:', err);
+      }
+    };
+
+    if (!authLoading) {
+      exchangeToken();
+    }
+  }, [authLoading]);
+
   useEffect(() => {
     // Check for product context from various sources
     const initProduct = async () => {
