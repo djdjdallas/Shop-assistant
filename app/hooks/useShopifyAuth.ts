@@ -14,9 +14,8 @@ interface UseShopifyAuthResult {
 /**
  * Hook for managing Shopify authentication in embedded apps.
  *
- * App Bridge 4.x passes the id_token as a URL parameter during navigation.
- * This hook reads the token from the URL first (most reliable), then falls
- * back to calling shopify.idToken() if available.
+ * Prefers App Bridge idToken() for fresh tokens (needed for API calls),
+ * falls back to the URL id_token param for initial auth detection.
  */
 export function useShopifyAuth(): UseShopifyAuthResult {
   const [isLoading, setIsLoading] = useState(true);
@@ -30,17 +29,7 @@ export function useShopifyAuth(): UseShopifyAuthResult {
     }
 
     try {
-      const searchParams = new URLSearchParams(window.location.search);
-
-      // 1. Primary: read id_token from URL params (Shopify passes this in App Bridge 4.x)
-      const urlToken = searchParams.get('id_token');
-      if (urlToken) {
-        console.log('[Auth] Using id_token from URL params');
-        setSessionToken(urlToken);
-        return urlToken;
-      }
-
-      // 2. Try App Bridge idToken() with a short timeout
+      // 1. Primary: use App Bridge idToken() for a fresh, valid token
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const appBridge = (window as unknown as { shopify?: any }).shopify;
 
@@ -51,14 +40,21 @@ export function useShopifyAuth(): UseShopifyAuthResult {
         ]);
 
         if (token) {
-          console.log('[Auth] Got token from App Bridge idToken()');
           setSessionToken(token);
           return token;
         }
-        console.warn('[Auth] App Bridge idToken() timed out, using fallback');
       }
 
-      // 3. Fallback: set shop domain for shop-param based auth
+      // 2. Fallback: read id_token from URL params (for initial load before App Bridge is ready)
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlToken = searchParams.get('id_token');
+      if (urlToken) {
+        console.log('[Auth] Falling back to id_token from URL params');
+        setSessionToken(urlToken);
+        return urlToken;
+      }
+
+      // 3. Last resort: set shop domain for shop-param based auth
       const shop = searchParams.get('shop');
       if (shop) {
         setShopDomain(shop);
