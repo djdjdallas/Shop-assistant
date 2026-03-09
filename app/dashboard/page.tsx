@@ -116,16 +116,24 @@ export default function Page() {
     setIsPickerLoading(true);
     try {
       if (appBridge.resourcePicker) {
-        // First ensure we have a valid idToken (App Bridge is connected)
-        const token = await getToken();
-        if (!token) {
-          console.warn('No idToken available — resource picker may not work');
+        // Ensure App Bridge has an active session before opening the picker.
+        // Now that App Bridge is properly configured, idToken() should resolve.
+        if (appBridge.idToken) {
+          try {
+            const bridgeToken = await Promise.race([
+              appBridge.idToken(),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+            ]);
+            console.log('[Picker] App Bridge idToken():', bridgeToken ? 'success' : 'timed out');
+          } catch (err) {
+            console.warn('[Picker] App Bridge idToken() error:', err);
+          }
         }
 
-        // Timeout the resource picker — it can hang if App Bridge auth failed
+        // Open the resource picker — give the user 30s to interact with it
         const selected = await Promise.race([
-          appBridge.resourcePicker({ type: 'product' }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+          appBridge.resourcePicker({ type: 'product', multiple: false }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 30000)),
         ]);
 
         if (selected && Array.isArray(selected) && selected.length > 0) {
