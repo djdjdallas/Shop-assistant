@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface UseShopifyAuthResult {
   isAuthenticated: boolean;
@@ -12,45 +12,17 @@ interface UseShopifyAuthResult {
 }
 
 /**
- * Wait for App Bridge to be fully connected to the Shopify Admin parent frame.
- * In App Bridge 4.x, window.shopify exists once the script loads, but idToken()
- * will hang until the bridge has established its postMessage connection.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function waitForAppBridge(timeoutMs = 5000): Promise<any | null> {
-  const start = Date.now();
-
-  while (Date.now() - start < timeoutMs) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = (window as unknown as { shopify?: any }).shopify;
-    if (sb?.idToken) {
-      // Test if the bridge is actually connected by checking for config/environment
-      // App Bridge 4.x sets shopify.config when fully initialized
-      if (sb.config || sb.environment) {
-        return sb;
-      }
-    }
-    await new Promise((r) => setTimeout(r, 250));
-  }
-
-  // Return whatever we have even if config isn't set — idToken may still work
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (window as unknown as { shopify?: any }).shopify ?? null;
-}
-
-/**
  * Hook for managing Shopify authentication in embedded apps.
  *
- * In App Bridge 4.x, session tokens are managed differently.
- * This hook provides a simplified interface for authentication state
- * and can be extended to integrate with App Bridge when needed.
+ * App Bridge 4.x passes the id_token as a URL parameter during navigation.
+ * This hook reads the token from the URL first (most reliable), then falls
+ * back to calling shopify.idToken() if available.
  */
 export function useShopifyAuth(): UseShopifyAuthResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [shopDomain, setShopDomain] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const retryCount = useRef(0);
 
   const getToken = useCallback(async (): Promise<string | null> => {
     if (typeof window === 'undefined') {
@@ -58,45 +30,38 @@ export function useShopifyAuth(): UseShopifyAuthResult {
     }
 
     try {
-      const appBridge = await waitForAppBridge(5000);
+      const searchParams = new URLSearchParams(window.location.search);
 
-      if (appBridge?.idToken) {
-        // Attempt idToken with 5s timeout; retry once on timeout
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const token = await Promise.race([
-            appBridge.idToken(),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
-          ]);
-
-          if (token) {
-            retryCount.current = 0;
-            setSessionToken(token);
-            return token;
-          }
-
-          if (attempt === 0) {
-            console.warn('App Bridge idToken() timed out, retrying...');
-            // Brief pause before retry
-            await new Promise((r) => setTimeout(r, 500));
-          }
-        }
-
-        console.warn(
-          'App Bridge idToken() timed out after retries. ' +
-          'Verify NEXT_PUBLIC_SHOPIFY_API_KEY matches your app client_id in Shopify Partners, ' +
-          'and that the app is loaded inside the Shopify Admin.'
-        );
+      // 1. Primary: read id_token from URL params (Shopify passes this in App Bridge 4.x)
+      const urlToken = searchParams.get('id_token');
+      if (urlToken) {
+        console.log('[Auth] Using id_token from URL params');
+        setSessionToken(urlToken);
+        return urlToken;
       }
 
-      // Fallback: check URL params for embedded context
-      const searchParams = new URLSearchParams(window.location.search);
-      const host = searchParams.get('host');
-      const shop = searchParams.get('shop');
+      // 2. Try App Bridge idToken() with a short timeout
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const appBridge = (window as unknown as { shopify?: any }).shopify;
 
-      if (host && shop) {
-        // We're in an embedded context but App Bridge isn't connected
+      if (appBridge?.idToken) {
+        const token = await Promise.race([
+          appBridge.idToken(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
+
+        if (token) {
+          console.log('[Auth] Got token from App Bridge idToken()');
+          setSessionToken(token);
+          return token;
+        }
+        console.warn('[Auth] App Bridge idToken() timed out, using fallback');
+      }
+
+      // 3. Fallback: set shop domain for shop-param based auth
+      const shop = searchParams.get('shop');
+      if (shop) {
         setShopDomain(shop);
-        return null;
       }
 
       return null;
@@ -113,7 +78,6 @@ export function useShopifyAuth(): UseShopifyAuthResult {
       setError(null);
 
       try {
-        // Get shop domain from URL
         if (typeof window !== 'undefined') {
           const searchParams = new URLSearchParams(window.location.search);
           const shop = searchParams.get('shop');
