@@ -8,8 +8,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const shop = url.searchParams.get('shop');
 
-  const apiKey = process.env.SHOPIFY_API_KEY;
-  const publicApiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
+  const apiKey = process.env.SHOPIFY_API_KEY?.trim();
+  const publicApiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY?.trim();
   const appUrl = process.env.SHOPIFY_APP_URL;
   const apiSecret = process.env.SHOPIFY_API_SECRET;
 

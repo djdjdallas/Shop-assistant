@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <meta name="shopify-api-key" content={process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || ''} />
+        <meta name="shopify-api-key" content={(process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '').trim()} />
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
