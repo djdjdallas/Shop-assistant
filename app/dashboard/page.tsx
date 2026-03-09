@@ -165,35 +165,36 @@ export default function Page() {
     setSessionTokenGetter(getToken);
   }, [getToken]);
 
-  // Automatically exchange the id_token for a server-side access token
-  // This replaces the traditional OAuth redirect flow for embedded apps
+  // Automatically exchange the id_token for a server-side access token.
+  // This replaces the traditional OAuth redirect flow for embedded apps.
+  // Runs immediately on mount — no dependencies needed.
   useEffect(() => {
-    const exchangeToken = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const idToken = params.get('id_token');
-      if (!idToken) return;
+    const params = new URLSearchParams(window.location.search);
+    const idToken = params.get('id_token');
+    if (!idToken) {
+      console.log('[Auth] No id_token in URL, skipping token exchange');
+      return;
+    }
 
-      try {
-        const res = await fetch('/api/auth/token-exchange', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionToken: idToken }),
-        });
-        const data = await res.json();
+    console.log('[Auth] Starting token exchange...');
+
+    fetch('/api/auth/token-exchange', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: idToken }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           console.log('[Auth] Token exchange successful for:', data.shop);
         } else {
           console.warn('[Auth] Token exchange failed:', data.error, data.detail);
         }
-      } catch (err) {
-        console.warn('[Auth] Token exchange request failed:', err);
-      }
-    };
-
-    if (!authLoading) {
-      exchangeToken();
-    }
-  }, [authLoading]);
+      })
+      .catch((err) => {
+        console.error('[Auth] Token exchange request failed:', err);
+      });
+  }, []);
 
   useEffect(() => {
     // Check for product context from various sources
