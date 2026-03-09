@@ -91,8 +91,8 @@ let _shopify: ReturnType<typeof shopifyApi> | null = null;
 function getShopifyApi() {
   if (_shopify) return _shopify;
 
-  const apiKey = process.env.SHOPIFY_API_KEY;
-  const apiSecretKey = process.env.SHOPIFY_API_SECRET;
+  const apiKey = process.env.SHOPIFY_API_KEY?.trim();
+  const apiSecretKey = process.env.SHOPIFY_API_SECRET?.trim();
 
   if (!apiKey || !apiSecretKey) {
     throw new Error(
@@ -103,8 +103,8 @@ function getShopifyApi() {
   _shopify = shopifyApi({
     apiKey,
     apiSecretKey,
-    scopes: (process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,read_inventory').split(','),
-    hostName: process.env.SHOPIFY_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000',
+    scopes: (process.env.SHOPIFY_SCOPES || 'read_products,write_products,read_orders,read_inventory').split(',').map(s => s.trim()),
+    hostName: process.env.SHOPIFY_APP_URL?.trim().replace(/^https?:\/\//, '') || 'localhost:3000',
     hostScheme: process.env.NODE_ENV === 'production' ? 'https' : 'http',
     isEmbeddedApp: true,
     apiVersion: LATEST_API_VERSION,
